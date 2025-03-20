@@ -165,16 +165,33 @@ def authenticate_user(request):
         password = data.get("password")
         users_collection = db["Users"]
 
+        # Find the user by username
         user = users_collection.find_one({"username": username})
         if not user:
             return JsonResponse({"error": "User not found"}, status=404)
 
+        # Verify the password
         if not verify_password(password, user["password"]):
             return JsonResponse({"error": "Incorrect password"}, status=401)
 
+        # Generate the access token
         access_token = create_access_token({"sub": str(user["_id"])})
-        return JsonResponse({"access_token": access_token}, status=200)
 
+        # Prepare the user details to return
+        user_details = {
+            "user_id": str(user["_id"]),
+            "username": user["username"],
+            "personal_details": user.get("personal_details", {}),
+            "contact": user.get("contact", {}),
+            "role": user.get("role", ""),
+            # Add other fields as needed
+        }
+
+        # Return the access token and user details
+        return JsonResponse({
+            "access_token": access_token,
+            "user": user_details
+        }, status=200)
 # Protect routes with JWT authentication
 
 # Protected route
