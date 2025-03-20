@@ -83,14 +83,6 @@ WSGI_APPLICATION = 'health_care.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.dummy',
-        'NAME': 'test',
-        'ENFORCE_SCHEMA': False,
-    
-    }
-}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
