@@ -58,6 +58,33 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    'https://quick-validate.netlify.app',
+    'http://localhost:8000',
+   
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://quick-validate.netlify.app',
+    'https://advatech.up.railway.app',
+    'http://localhost:8000',
+    
+
+]
+
+
 ROOT_URLCONF = 'health_care.urls'
 
 TEMPLATES = [
