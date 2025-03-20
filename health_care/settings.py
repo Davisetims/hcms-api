@@ -11,10 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-from mongoengine import connect
 import os
 from dotenv import load_dotenv
 load_dotenv()
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,10 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^y5b6!&#&y&s0dg)oma*peo3@j&=%mi(awd!mig!&ehvaory$#'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = []
 
@@ -79,27 +80,15 @@ WSGI_APPLICATION = 'health_care.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# MONGODB_URL ="mongodb://mongo:IusWdBpSuvkoZycPkveSsvmDHQwZZhDY@switchyard.proxy.rlwy.net:58847"
-
-# mongoengine.connect(host=MONGODB_URL)
-# Disable Django's relational database
-# 
-from mongoengine import connect
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.dummy"  # Dummy database backend for Django
+    'default': {
+        'ENGINE': 'django.db.backends.dummy',
+        'NAME': 'test',
+        'ENFORCE_SCHEMA': False,
+    
     }
 }
-
-MONGODB_URI = "mongodb://mongo:IusWdBpSuvkoZycPkveSsvmDHQwZZhDY@switchyard.proxy.rlwy.net:58847/test?authSource=admin"
-
-connect(
-    db="test",  # Your database name
-    host=MONGODB_URI,
-    alias="default"  # Define the default connection
-)
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -141,3 +130,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+    ],
+}
