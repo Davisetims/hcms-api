@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from mongoengine import connect
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,13 +79,26 @@ WSGI_APPLICATION = 'health_care.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-MONGODB_DATABASES= {
-    'db':"test",
-    'host':"mongodb://mongo:IusWdBpSuvkoZycPkveSsvmDHQwZZhDY@switchyard.proxy.rlwy.net:58847",
-    'username':"mongo",
-    'password':"IusWdBpSuvkoZycPkveSsvmDHQwZZhDY",
+# MONGODB_URL ="mongodb://mongo:IusWdBpSuvkoZycPkveSsvmDHQwZZhDY@switchyard.proxy.rlwy.net:58847"
+
+# mongoengine.connect(host=MONGODB_URL)
+# Disable Django's relational database
+# 
+from mongoengine import connect
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.dummy"  # Dummy database backend for Django
+    }
 }
-connect(**MONGODB_DATABASES)
+
+MONGODB_URI = "mongodb://mongo:IusWdBpSuvkoZycPkveSsvmDHQwZZhDY@switchyard.proxy.rlwy.net:58847/test?authSource=admin"
+
+connect(
+    db="test",  # Your database name
+    host=MONGODB_URI,
+    alias="default"  # Define the default connection
+)
 
 
 # Password validation
