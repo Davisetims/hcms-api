@@ -140,21 +140,47 @@ def decode_access_token(token: str):
 @csrf_exempt
 def register_user(request):
     if request.method == "POST":
-        data = json.loads(request.body)
-        username = data.get("username")
-        password = data.get("password")
-        users_collection = db["Users"]
+        try:
+            # Parse the request body
+            data = json.loads(request.body)
+            username = data.get("username")
+            password = data.get("password")
+            role = data.get("role")
+            personal_details = data.get("personal_details")
+            contact = data.get("contact")
 
-        if users_collection.find_one({"username": username}):
-            return JsonResponse({"error": "Username already exists"}, status=400)
+            # Validate required fields
+            if not all([username, password, role, personal_details, contact]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
 
-        hashed_password = hash_password(password)
-        user = {
-            "username": username,
-            "password": hashed_password,
-        }
-        result = users_collection.insert_one(user)
-        return JsonResponse({"message": "User registered", "user_id": str(result.inserted_id)}, status=201)
+            # Check if the username already exists
+            users_collection = db["Users"]
+            if users_collection.find_one({"username": username}):
+                return JsonResponse({"error": "Username already exists"}, status=400)
+
+            # Hash the password
+            hashed_password = hash_password(password)
+
+            # Create the user document
+            user = {
+                "username": username,
+                "password": hashed_password,
+                "role": role,
+                "personal_details": personal_details,
+                "contact": contact,
+            }
+
+            # Insert the user into the database
+            result = users_collection.insert_one(user)
+
+            return JsonResponse({
+                "message": "User registered successfully",
+                "user_id": str(result.inserted_id)
+            }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 # Authenticate a user and generate JWT
 @csrf_exempt
@@ -192,7 +218,7 @@ def authenticate_user(request):
             "access_token": access_token,
             "user": user_details
         }, status=200)
-# Protect routes with JWT authentication
+
 
 # Protected route
 @jwt_required
@@ -201,3 +227,55 @@ def protected_view(request):
     user_id = request.user_id
     user = users_collection.find_one({"_id": ObjectId(user_id)})
     return JsonResponse({"message": f"Hello, {user['username']}!"})
+
+@jwt_required
+@csrf_exempt
+def post_medical_record(request):
+    medical_records_collection = db["MedicalRecords"]
+    users_collection = db["Users"]
+    if request.method == "POST":
+        try:
+            # Get the logged-in user's ID from the request
+            user_id = request.user_id
+
+            # Fetch the user from the database
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Check if the user is a doctor
+            if user.get("role") != "doctor":
+                return JsonResponse({"error": "Only doctors can post medical records"}, status=403)
+
+            # Parse the request body
+            data = json.loads(request.body)
+            patient_id = data.get("patient_id")
+            record_type = data.get("record_type")
+            description = data.get("description")
+            file_url = data.get("file_url")
+
+            # Validate required fields
+            if not all([patient_id, record_type, description, file_url]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            # Create the medical record
+            medical_record = {
+                "patient_id": ObjectId(patient_id),
+                "doctor_id": ObjectId(user_id),  # The logged-in doctor's ID
+                "record_type": record_type,
+                "description": description,
+                "file_url": file_url,
+                "uploaded_at": datetime.utcnow()
+            }
+
+            # Insert the record into the MedicalRecords collection
+            result = medical_records_collection.insert_one(medical_record)
+
+            return JsonResponse({
+                "message": "Medical record created successfully",
+                "record_id": str(result.inserted_id)
+            }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)

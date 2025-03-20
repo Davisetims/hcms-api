@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import create_user_view, get_users_view, get_user_by_id_view,\
- register_user, authenticate_user, protected_view
+ register_user, authenticate_user, protected_view,post_medical_record
 
 urlpatterns = [
     path("users/", create_user_view, name="create-user"),  # Register user (POST)
@@ -9,5 +9,6 @@ urlpatterns = [
     path('register/', register_user, name='register'),
     path('login/', authenticate_user, name='login'),
     path('protected/', protected_view, name='protected'),
+    path('medical-records/', post_medical_record, name='post-medical-record'),
 ]
 
