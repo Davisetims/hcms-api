@@ -9,7 +9,8 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
-from core.collections import users_collection ,db ,medical_history_collection
+from core.collections import users_collection ,db ,medical_history_collection, \
+prescriptions_collection
 
 SECRET_KEY = os.getenv("HASH_SECRET_KEY")
 ALGORITHM = "HS256"
@@ -223,13 +224,6 @@ def authenticate_user(request):
         }, status=200)
 
 
-# Protected route
-@jwt_required
-def protected_view(request):
-    user_id = request.user_id
-    user = users_collection.find_one({"_id": ObjectId(user_id)})
-    return JsonResponse({"message": f"Hello, {user['username']}!"})
-
 @jwt_required
 @csrf_exempt
 def post_medical_record(request):
@@ -327,6 +321,89 @@ def post_medical_history(request):
                 "message": "Medical history created successfully",
                 "medical_history_id": str(result.inserted_id)
             }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+
+# Function for doctors to post prescriptions
+@jwt_required
+@csrf_exempt
+def post_prescription(request):
+    if request.method == "POST":
+        try:
+            # Get the logged-in user's ID from the request
+            user_id = request.user_id
+
+            # Fetch the user from the database
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Check if the user is a doctor
+            if user.get("role") != "doctor":
+                return JsonResponse({"error": "Only doctors can post prescriptions"}, status=403)
+
+            # Parse the request body
+            data = json.loads(request.body)
+            patient_id = data.get("patient_id")
+            medications = data.get("medications")
+
+            # Validate required fields
+            if not all([patient_id, medications]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            # Create the prescription document
+            prescription = {
+                "patient_id": ObjectId(patient_id),
+                "doctor_id": ObjectId(user_id),  # The logged-in doctor's ID
+                "prescribed_date": datetime.utcnow(),
+                "medications": medications
+            }
+
+            # Insert the prescription into the collection
+            result = prescriptions_collection.insert_one(prescription)
+
+            return JsonResponse({
+                "message": "Prescription created successfully",
+                "prescription_id": str(result.inserted_id)
+            }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+
+# Function for patients to view their prescriptions
+@jwt_required
+@csrf_exempt
+def get_patient_prescriptions(request):
+    if request.method == "GET":
+        try:
+            # Get the logged-in user's ID from the request
+            user_id = request.user_id
+
+            # Fetch the user from the database
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Check if the user is a patient
+            if user.get("role") != "patient":
+                return JsonResponse({"error": "Only patients can view their prescriptions"}, status=403)
+
+            # Retrieve prescriptions for the logged-in patient
+            prescriptions = list(prescriptions_collection.find({"patient_id": ObjectId(user_id)}))
+
+            # Convert ObjectId to string for JSON serialization
+            for prescription in prescriptions:
+                prescription["_id"] = str(prescription["_id"])
+                prescription["patient_id"] = str(prescription["patient_id"])
+                prescription["doctor_id"] = str(prescription["doctor_id"])
+
+            # Return the list of prescriptions as a JSON response
+            return JsonResponse({"prescriptions": prescriptions}, status=200, safe=False)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     else:
