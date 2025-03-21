@@ -46,14 +46,22 @@ def create_user_view(request):
             return JsonResponse({"error": str(e)}, status=400)
         
 def get_users_view(request):
-    """Retrieve all users from MongoDB."""
+    """Retrieve users from MongoDB, optionally filtered by role."""
     if request.method == "GET":
         try:
             # Access the "Users" collection
             users_collection = db["Users"]
 
-            # Retrieve all users from the collection
-            users = list(users_collection.find({}))
+            # Get the role query parameter (if provided)
+            role = request.GET.get("role")
+
+            # Build the query
+            query = {}
+            if role:
+                query["role"] = role
+
+            # Retrieve users based on the query
+            users = list(users_collection.find(query))
 
             # Convert ObjectId to string for JSON serialization
             for user in users:
@@ -65,7 +73,7 @@ def get_users_view(request):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
-
+    
 def get_user_by_id_view(request, user_id):
     """Retrieve a user by their ID from MongoDB."""
     if request.method == "GET":
