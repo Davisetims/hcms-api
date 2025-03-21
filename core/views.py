@@ -46,12 +46,10 @@ def create_user_view(request):
             return JsonResponse({"error": str(e)}, status=400)
         
 def get_users_view(request):
-    """Retrieve users from MongoDB, optionally filtered by role."""
+    """Retrieve users from MongoDB, optionally filtered by role, and exclude the password field."""
     if request.method == "GET":
         try:
-            # Access the "Users" collection
             users_collection = db["Users"]
-
             # Get the role query parameter (if provided)
             role = request.GET.get("role")
 
@@ -60,8 +58,8 @@ def get_users_view(request):
             if role:
                 query["role"] = role
 
-            # Retrieve users based on the query
-            users = list(users_collection.find(query))
+            # Retrieve users based on the query, excluding the password field
+            users = list(users_collection.find(query, {"password": 0}))
 
             # Convert ObjectId to string for JSON serialization
             for user in users:
