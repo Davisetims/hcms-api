@@ -9,7 +9,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
-from core.mongodb import db
+from core.collections import users_collection ,db ,medical_history_collection
 
 SECRET_KEY = os.getenv("HASH_SECRET_KEY")
 ALGORITHM = "HS256"
@@ -36,7 +36,7 @@ def create_user_view(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            users_collection = db["Users"]
+            
             result = users_collection.insert_one(data)
             return JsonResponse(
                 {"message": "User created", "id": str(result.inserted_id)},
@@ -49,7 +49,7 @@ def get_users_view(request):
     """Retrieve users from MongoDB, optionally filtered by role, and exclude the password field."""
     if request.method == "GET":
         try:
-            users_collection = db["Users"]
+    
             # Get the role query parameter (if provided)
             role = request.GET.get("role")
 
@@ -76,9 +76,7 @@ def get_user_by_id_view(request, user_id):
     """Retrieve a user by their ID from MongoDB."""
     if request.method == "GET":
         try:
-            # Access the "Users" collection
-            users_collection = db["Users"]
-
+    
             # Convert the user_id string to ObjectId
             user_id = ObjectId(user_id)
 
@@ -159,8 +157,7 @@ def register_user(request):
             if not all([username, password, role, personal_details, contact]):
                 return JsonResponse({"error": "Missing required fields"}, status=400)
 
-            # Check if the username already exists
-            users_collection = db["Users"]
+            # Check if the username already exist
             if users_collection.find_one({"username": username}):
                 return JsonResponse({"error": "Username already exists"}, status=400)
 
@@ -195,7 +192,7 @@ def authenticate_user(request):
         data = json.loads(request.body)
         username = data.get("username")
         password = data.get("password")
-        users_collection = db["Users"]
+        
 
         # Find the user by username
         user = users_collection.find_one({"username": username})
@@ -229,7 +226,6 @@ def authenticate_user(request):
 # Protected route
 @jwt_required
 def protected_view(request):
-    users_collection = db["Users"]
     user_id = request.user_id
     user = users_collection.find_one({"_id": ObjectId(user_id)})
     return JsonResponse({"message": f"Hello, {user['username']}!"})
@@ -238,7 +234,6 @@ def protected_view(request):
 @csrf_exempt
 def post_medical_record(request):
     medical_records_collection = db["MedicalRecords"]
-    users_collection = db["Users"]
     if request.method == "POST":
         try:
             # Get the logged-in user's ID from the request
@@ -280,6 +275,57 @@ def post_medical_record(request):
             return JsonResponse({
                 "message": "Medical record created successfully",
                 "record_id": str(result.inserted_id)
+            }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+# Function to post medical history (only for doctors)
+@jwt_required
+@csrf_exempt
+def post_medical_history(request):
+    if request.method == "POST":
+        try:
+        
+            # Get the logged-in user's ID from the request
+            user_id = request.user_id
+
+            # Fetch the user from the database
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Check if the user is a doctor
+            if user.get("role") != "doctor":
+                return JsonResponse({"error": "Only doctors can post medical history"}, status=403)
+
+            # Parse the request body
+            data = json.loads(request.body)
+            patient_id = data.get("patient_id")
+            conditions = data.get("conditions")
+            documents = data.get("documents")
+
+            # Validate required fields
+            if not all([patient_id, conditions, documents]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            # Create the medical history document
+            medical_history = {
+                "patient_id": ObjectId(patient_id),
+                "diagnosed_by": ObjectId(user_id),  # The logged-in doctor's ID
+                "conditions": conditions,
+                "documents": documents,
+                "registered_at": datetime.utcnow()
+            }
+
+            # Insert the medical history into the collection
+            result = medical_history_collection.insert_one(medical_history)
+
+            return JsonResponse({
+                "message": "Medical history created successfully",
+                "medical_history_id": str(result.inserted_id)
             }, status=201)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
