@@ -122,3 +122,84 @@ def get_appointments(request):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+# Function to update an appointment
+@jwt_required
+@csrf_exempt
+def update_appointment(request):
+    if request.method == "PATCH":
+        try:
+            # Get the logged-in user's ID from the request
+            user_id = request.user_id
+
+            # Fetch the user from the database
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Parse the request body
+            data = json.loads(request.body)
+            appointment_id = data.get("appointment_id")
+            new_appointment_date = data.get("appointment_date")
+            new_doctor_id = data.get("doctor_id")
+            new_notes = data.get("notes")
+
+            # Validate the appointment ID
+            if not appointment_id:
+                return JsonResponse({"error": "Missing appointment_id"}, status=400)
+
+            # Fetch the appointment from the database
+            appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
+            if not appointment:
+                return JsonResponse({"error": "Appointment not found"}, status=404)
+
+            # Check if the logged-in user is the doctor or patient associated with the appointment
+            if user["role"] == "doctor" and str(appointment["doctor_id"]) != user_id:
+                return JsonResponse({"error": "You are not authorized to update this appointment"}, status=403)
+            elif user["role"] == "patient" and str(appointment["patient_id"]) != user_id:
+                return JsonResponse({"error": "You are not authorized to update this appointment"}, status=403)
+
+            # Prepare the update data based on the user's role
+            update_data = {}
+            if user["role"] == "patient":
+                if new_doctor_id:
+                    update_data["doctor_id"] = ObjectId(new_doctor_id)
+                if new_appointment_date:
+                    try:
+                        update_data["appointment_date"] = datetime.fromisoformat(new_appointment_date)
+                    except ValueError:
+                        return JsonResponse({"error": "Invalid appointment_date format. Use ISO format (e.g., 2024-02-20T10:00:00Z)"}, status=400)
+            elif user["role"] == "doctor":
+                if new_appointment_date:
+                    try:
+                        update_data["appointment_date"] = datetime.fromisoformat(new_appointment_date)
+                    except ValueError:
+                        return JsonResponse({"error": "Invalid appointment_date format. Use ISO format (e.g., 2024-02-20T10:00:00Z)"}, status=400)
+                if new_notes:
+                    update_data["notes"] = new_notes
+
+            # Update the appointment
+            if update_data:
+                appointments_collection.update_one(
+                    {"_id": ObjectId(appointment_id)},
+                    {"$set": update_data}
+                )
+
+            # Fetch the updated appointment
+            updated_appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
+
+            # Convert ObjectId to string for JSON serialization
+            updated_appointment["_id"] = str(updated_appointment["_id"])
+            updated_appointment["patient_id"] = str(updated_appointment["patient_id"])
+            updated_appointment["doctor_id"] = str(updated_appointment["doctor_id"])
+
+            # Return the updated appointment
+            return JsonResponse({
+                "message": "Appointment updated successfully",
+                "appointment": updated_appointment
+            }, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
