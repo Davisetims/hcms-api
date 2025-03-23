@@ -3,7 +3,8 @@ from django.views.decorators.csrf import csrf_exempt
 from bson import ObjectId
 import json
 from datetime import datetime
-from core.collections import users_collection ,db, medical_history_collection
+from core.collections import users_collection ,db, medical_history_collection, \
+medical_records_collection
 from core.users import jwt_required
 
 
@@ -104,6 +105,67 @@ def post_medical_history(request):
                 "message": "Medical history created successfully",
                 "medical_history_id": str(result.inserted_id)
             }, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@jwt_required
+def get_medical_records(request):
+    if request.method == "GET":
+        try:
+            # Get the logged-in user's ID from the request
+            user_id = request.user_id
+
+            # Fetch the user from the database
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+
+            # Determine the user's role
+            role = user.get("role")
+
+            # Build the query based on the user's role
+            if role == "doctor":
+                query = {"doctor_id": ObjectId(user_id)}
+            elif role == "patient":
+                query = {"patient_id": ObjectId(user_id)}
+            else:
+                return JsonResponse({"error": "Unauthorized access"}, status=403)
+
+            # Retrieve medical records based on the query
+            medical_records = list(medical_records_collection.find(query))
+
+            # Fetch personal details for each medical record
+            for record in medical_records:
+                # Fetch patient details
+                patient = users_collection.find_one({"_id": record["patient_id"]})
+                if patient:
+                    record["patient_details"] = {
+                        "first_name": patient["personal_details"]["first_name"],
+                        "last_name": patient["personal_details"]["last_name"],
+                        "age": patient["personal_details"]["age"],
+                        "gender": patient["personal_details"]["gender"]
+                    }
+
+                # Fetch doctor details (if the logged-in user is a patient)
+                if role == "patient":
+                    doctor = users_collection.find_one({"_id": record["doctor_id"]})
+                    if doctor:
+                        record["doctor_details"] = {
+                            "first_name": doctor["personal_details"]["first_name"],
+                            "last_name": doctor["personal_details"]["last_name"],
+                            "specialization": doctor.get("specialization", "")
+                        }
+
+                # Convert ObjectId to string for JSON serialization
+                record["_id"] = str(record["_id"])
+                record["patient_id"] = str(record["patient_id"])
+                record["doctor_id"] = str(record["doctor_id"])
+
+            # Return the list of medical records with personal details
+            return JsonResponse({"medical_records": medical_records}, status=200, safe=False)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     else:
