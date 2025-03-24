@@ -5,6 +5,7 @@ from core.medical_records import  post_medical_record,post_medical_history , get
 from core.prescriptions import post_prescription, get_patient_prescriptions
 from core.appointments import book_appointment, get_appointments ,update_appointment,\
 cancel_appointment
+from core.billings import manage_billing
  
 
 urlpatterns = [
@@ -22,5 +23,6 @@ urlpatterns = [
     path('get/user/appointments/', get_appointments, name='get-appointments'),
     path('update/user/appointments/', update_appointment, name='get-appointments'),
     path('cancel/appointments/<str:appointment_id>/', cancel_appointment, name='cancel-appointment'),
+    path('post/bill/', manage_billing, name='invoicing')
 ]
 

@@ -3,8 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from bson import ObjectId
 import json
 from datetime import datetime
-from core.collections import users_collection ,db ,medical_history_collection, \
-prescriptions_collection
+from core.collections import users_collection ,prescriptions_collection
 from core.users import jwt_required
 
 
