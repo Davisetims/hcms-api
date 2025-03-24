@@ -7,9 +7,8 @@ from core.collections import users_collection ,db, medical_history_collection, \
 medical_records_collection
 from core.users import jwt_required
 
-
-@jwt_required
 @csrf_exempt
+@jwt_required
 def post_medical_record(request):
     medical_records_collection = db["MedicalRecords"]
     if request.method == "POST":
