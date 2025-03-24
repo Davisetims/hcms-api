@@ -89,12 +89,23 @@ def get_appointments(request):
             # Retrieve appointments based on the query
             appointments = list(appointments_collection.find(query))
 
-            # Fetch personal details for each appointment
+            # Format the appointments list
+            formatted_appointments = []
             for appointment in appointments:
+                formatted_appointment = {
+                    "_id": str(appointment["_id"]),  # Convert ObjectId to string
+                    "patient_id": str(appointment["patient_id"]),  # Convert ObjectId
+                    "doctor_id": str(appointment["doctor_id"]),  # Convert ObjectId
+                    "date": appointment.get("date"),
+                    "time": appointment.get("time"),
+                    "status": appointment.get("status"),
+                    "remarks": appointment.get("remarks")
+                }
+
                 # Fetch patient details
                 patient = users_collection.find_one({"_id": appointment["patient_id"]})
                 if patient:
-                    appointment["patient_details"] = {
+                    formatted_appointment["patient_details"] = {
                         "first_name": patient["personal_details"]["first_name"],
                         "last_name": patient["personal_details"]["last_name"],
                         "age": patient["personal_details"]["age"],
@@ -105,23 +116,21 @@ def get_appointments(request):
                 if role == "patient":
                     doctor = users_collection.find_one({"_id": appointment["doctor_id"]})
                     if doctor:
-                        appointment["doctor_details"] = {
+                        formatted_appointment["doctor_details"] = {
                             "first_name": doctor["personal_details"]["first_name"],
                             "last_name": doctor["personal_details"]["last_name"],
                             "specialization": doctor.get("specialization", "")
                         }
 
-                # Remove IDs from the response
-                appointment.pop("_id", None)
-                appointment.pop("patient_id", None)
-                appointment.pop("doctor_id", None)
+                formatted_appointments.append(formatted_appointment)
 
             # Return the list of appointments with personal details
-            return JsonResponse({"appointments": appointments}, status=200, safe=False)
+            return JsonResponse({"appointments": formatted_appointments}, status=200)
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    else:
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 # Function to update an appointment
