@@ -3,7 +3,8 @@ from core.users import create_user_view,get_users_view, get_user_by_id_view,\
 register_user, authenticate_user
 from core.medical_records import  post_medical_record,post_medical_history , get_medical_records
 from core.prescriptions import post_prescription, get_patient_prescriptions
-from core.appointments import book_appointment, get_appointments ,update_appointment
+from core.appointments import book_appointment, get_appointments ,update_appointment,\
+cancel_appointment
  
 
 urlpatterns = [
@@ -20,5 +21,6 @@ urlpatterns = [
     path('book/appointments/', book_appointment, name='book-appointment'),
     path('get/user/appointments/', get_appointments, name='get-appointments'),
     path('update/user/appointments/', update_appointment, name='get-appointments'),
+    path('cancel/appointments/<str:appointment_id>/', cancel_appointment, name='cancel-appointment'),
 ]
 

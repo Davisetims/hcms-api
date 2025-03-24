@@ -203,3 +203,40 @@ def update_appointment(request):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+@jwt_required
+@csrf_exempt
+def cancel_appointment(request, appointment_id):
+    if request.method == "DELETE":
+        try:
+            # Get the logged-in user's ID
+            user_id = request.user_id
+
+            # Verify user exists and is a patient
+            user = users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=404)
+            if user.get("role") != "patient":
+                return JsonResponse({"error": "Only patients can cancel appointments"}, status=403)
+
+            # Find the appointment
+            appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
+            if not appointment:
+                return JsonResponse({"error": "Appointment not found"}, status=404)
+
+            # Verify the appointment belongs to this patient
+            if str(appointment["patient_id"]) != user_id:
+                return JsonResponse({"error": "You can only cancel your own appointments"}, status=403)
+
+            # Delete the appointment
+            result = appointments_collection.delete_one({"_id": ObjectId(appointment_id)})
+
+            if result.deleted_count == 1:
+                return JsonResponse({"message": "Appointment cancelled successfully"}, status=200)
+            else:
+                return JsonResponse({"error": "Failed to cancel appointment"}, status=500)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
