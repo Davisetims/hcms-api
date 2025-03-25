@@ -7,6 +7,7 @@ from core.appointments import book_appointment, get_appointments ,update_appoint
 cancel_appointment
 from core.billings import manage_billing, get_user_bills
 from core.test_results import post_test_result, get_test_results
+from core.messages import send_message, get_messages
  
 
 urlpatterns = [
@@ -28,6 +29,8 @@ urlpatterns = [
     path('get/user/bills/', get_user_bills, name='get-invoices'),
     path('post/test/results/', post_test_result, name='test-results'),
     path('get/user/test/results/', get_test_results, name='get-test-results'),
+    path('send/message/', send_message, name='send-message'),
+    path('get/message/', get_messages, name='get-message'),
 
 ]
 
