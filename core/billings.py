@@ -69,6 +69,7 @@ def manage_billing(request):
 @jwt_required
 @csrf_exempt
 
+
 def get_user_bills(request):
     if request.method == "GET":
         try:
@@ -92,13 +93,18 @@ def get_user_bills(request):
             else:
                 return JsonResponse({"error": "Unauthorized access"}, status=403)
 
+            # Apply payment_status filter if provided in the request
+            payment_status = request.GET.get("payment_status")
+            if payment_status:
+                query["payment_status"] = payment_status  # Example: {"payment_status": "Unpaid"}
+
             # Fetch bills from the database
             bills = list(billing_collection.find(query))
 
             # Format response
             formatted_bills = []
             for bill in bills:
-                # Fetch patient details
+                # Fetch patient and receptionist details
                 patient = users_collection.find_one({"_id": bill["patient_id"]})
                 receptionist = users_collection.find_one({"_id": bill.get("receptionist_id")})
 
