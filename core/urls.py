@@ -1,18 +1,19 @@
 from django.urls import path
 from core.users import create_user_view,get_users_view, get_user_by_id_view,\
- authenticate_user
+register_user, authenticate_user
 from core.medical_records import  post_medical_record,post_medical_history , get_medical_records
 from core.prescriptions import post_prescription, get_patient_prescriptions
 from core.appointments import book_appointment, get_appointments ,update_appointment,\
 cancel_appointment
-from core.billings import manage_billing
+from core.billings import manage_billing, get_user_bills
 from core.test_results import post_test_result, get_test_results
  
 
 urlpatterns = [
-    path("register/users/", create_user_view, name="create-user"),  # Register user (POST)
+    path("users/", create_user_view, name="create-user"),  # Register user (POST)
     path("all/users/", get_users_view, name="get-user"),  
     path('users/<str:user_id>/', get_user_by_id_view, name='get-user-by-id'),# Get user by ID (GET)
+    path('register/user/', register_user, name='register'),
     path('login/', authenticate_user, name='login'),
     path('post/medical-records/', post_medical_record, name='post-medical-record'),
     path('get/user/medical-records/', get_medical_records, name='get-medical-record'),
@@ -24,6 +25,7 @@ urlpatterns = [
     path('update/user/appointments/', update_appointment, name='get-appointments'),
     path('cancel/appointments/<str:appointment_id>/', cancel_appointment, name='cancel-appointment'),
     path('post/bill/', manage_billing, name='invoicing'),
+    path('get/user/bills/', get_user_bills, name='get-invoices'),
     path('post/test/results/', post_test_result, name='test-results'),
     path('get/user/test/results/', get_test_results, name='get-test-results'),
 
