@@ -61,6 +61,7 @@ def post_prescription(request):
 # Function for patients to view their prescriptions
 @jwt_required
 @csrf_exempt
+
 def get_patient_prescriptions(request):
     if request.method == "GET":
         try:
@@ -79,11 +80,19 @@ def get_patient_prescriptions(request):
             # Retrieve prescriptions for the logged-in patient
             prescriptions = list(prescriptions_collection.find({"patient_id": ObjectId(user_id)}))
 
-            # Convert ObjectId to string for JSON serialization
+            # Convert ObjectId to string for JSON serialization and fetch doctor's name
             for prescription in prescriptions:
                 prescription["_id"] = str(prescription["_id"])
-                prescription["patient_id"] = str(prescription["patient_id"])
-                prescription["doctor_id"] = str(prescription["doctor_id"])
+
+                # Fetch the doctor's details
+                doctor = users_collection.find_one({"_id": ObjectId(prescription["doctor_id"])})
+                if doctor:
+                    prescription["doctor_first_name"] = doctor["personal_details"]["first_name"]
+                    prescription["doctor_last_name"] = doctor["personal_details"]["last_name"]
+                
+                # Remove patient_id and doctor_id from response
+                prescription.pop("patient_id", None)
+                prescription.pop("doctor_id", None)
 
             # Return the list of prescriptions as a JSON response
             return JsonResponse({"prescriptions": prescriptions}, status=200, safe=False)
