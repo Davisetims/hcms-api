@@ -8,6 +8,7 @@ cancel_appointment
 from core.billings import manage_billing, get_user_bills
 from core.test_results import post_test_result, get_test_results
 from core.messages import send_message, get_messages
+from core.consultations import post_meeting_link, get_meeting_details
  
 
 urlpatterns = [
@@ -23,7 +24,7 @@ urlpatterns = [
     path('get/patient/prescriptions/', get_patient_prescriptions, name='get-patient-prescriptions'),
     path('book/appointments/', book_appointment, name='book-appointment'),
     path('get/user/appointments/', get_appointments, name='get-appointments'),
-    path('update/user/appointments/', update_appointment, name='get-appointments'),
+    path('update/user/appointments/', update_appointment, name='update-appointments'),
     path('cancel/appointments/<str:appointment_id>/', cancel_appointment, name='cancel-appointment'),
     path('post/bill/', manage_billing, name='invoicing'),
     path('get/user/bills/', get_user_bills, name='get-invoices'),
@@ -31,6 +32,10 @@ urlpatterns = [
     path('get/user/test/results/', get_test_results, name='get-test-results'),
     path('send/message/', send_message, name='send-message'),
     path('get/message/', get_messages, name='get-message'),
+    path('post/meeting/link/', post_meeting_link, name='meeting'),
+    path('get/meeting/link/<consultation_id>/', get_meeting_details, name='get-meeting'),
+
+
 
 ]
 
