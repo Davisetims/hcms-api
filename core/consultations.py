@@ -140,3 +140,56 @@ def get_meeting_details(request, consultation_id):
 
     except Exception as e:
         return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)
+    
+@jwt_required
+@csrf_exempt
+def get_user_consultations(request):
+    try:
+        # 1. Get and validate user ID
+        user_id = request.user_id  
+        if not user_id:
+            return JsonResponse({"error": "Authentication required"}, status=401)
+
+        if not ObjectId.is_valid(user_id):
+            return JsonResponse({"error": "Invalid user ID format"}, status=400)
+
+        # 2. Get user document and role
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return JsonResponse({"error": "User not found"}, status=404)
+
+        user_role = user.get("role")
+        if user_role not in ["doctor", "patient"]:
+            return JsonResponse({"error": "Unauthorized role"}, status=403)
+
+        # 3. Build query based on user role
+        query = {"doctor_id": ObjectId(user_id)} if user_role == "doctor" else {"patient_id": ObjectId(user_id)}
+
+        # 4. Get all consultations
+        consultations = list(consultations_collection.find(query).sort("consultation_date", -1))
+
+        # 5. Process and format the results
+        formatted_consultations = []
+        for consultation in consultations:
+            # Get the other participant's details
+            other_participant_id = consultation["patient_id"] if user_role == "doctor" else consultation["doctor_id"]
+            other_user = users_collection.find_one({"_id": other_participant_id})
+
+            formatted_consultations.append({
+                "id": str(consultation["_id"]),
+                "date": consultation.get("consultation_date", consultation.get("created_at")).isoformat(),
+                "status": consultation.get("status", "scheduled"),
+                "meeting_link": consultation.get("meeting_link", ""),
+                "participant": {
+                    "name": f"{other_user['personal_details']['first_name']} {other_user['personal_details']['last_name']}" if other_user else "Unknown",
+                    "role": "patient" if user_role == "doctor" else "doctor",
+                    "specialization": other_user.get("specialization", "") if user_role == "patient" and other_user else ""
+                },
+                "notes": consultation.get("notes", "")[:100]  # Truncate long notes
+            })
+
+        # 6. Return all consultations
+        return JsonResponse({"consultations": formatted_consultations}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": "Internal server error"}, status=500)

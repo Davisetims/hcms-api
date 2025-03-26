@@ -8,7 +8,7 @@ cancel_appointment
 from core.billings import manage_billing, get_user_bills
 from core.test_results import post_test_result, get_test_results
 from core.messages import send_message, get_messages
-from core.consultations import post_meeting_link, get_meeting_details
+from core.consultations import post_meeting_link, get_meeting_details, get_user_consultations
  
 
 urlpatterns = [
@@ -34,6 +34,7 @@ urlpatterns = [
     path('get/message/', get_messages, name='get-message'),
     path('post/meeting/link/', post_meeting_link, name='meeting'),
     path('get/meeting/link/<consultation_id>/', get_meeting_details, name='get-meeting'),
+    path('get/meeting/link/', get_user_consultations, name='get-meeting'),
 
 
 
