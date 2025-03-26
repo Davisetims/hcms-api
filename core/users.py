@@ -59,15 +59,14 @@ def get_users_view(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
 def get_user_by_id_view(request, user_id):
-    """Retrieve a user by their ID from MongoDB."""
+    """Retrieve a user by their ID from MongoDB without returning the password."""
     if request.method == "GET":
         try:
-    
-            # Convert the user_id string to ObjectId
+            # Convert user_id string to ObjectId
             user_id = ObjectId(user_id)
 
             # Find the user by their _id
-            user = users_collection.find_one({"_id": user_id})
+            user = users_collection.find_one({"_id": user_id}, {"password": 0})  # Exclude password field
 
             # If the user is not found, return a 404 error
             if not user:
@@ -78,6 +77,7 @@ def get_user_by_id_view(request, user_id):
 
             # Return the user as a JSON response
             return JsonResponse({"user": user}, status=200)
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     else:
